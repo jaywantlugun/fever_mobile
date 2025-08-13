@@ -1,0 +1,43 @@
+name: Cleanup Merged Branches
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if branch should be deleted
+        id: check-branch
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          if [[ "$BRANCH_NAME" =~ ^(feat/|bug/|hotfix/) ]]; then
+            echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+            echo "should_delete=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_delete=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Delete branch
+        if: steps.check-branch.outputs.should_delete == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${'${{ steps.check-branch.outputs.branch_name }}'}`
+              });
+              console.log(`Deleted branch ${{ steps.check-branch.outputs.branch_name }}`);
+            } catch (error) {
+              console.log(`Branch ${{ steps.check-branch.outputs.branch_name }} already deleted or not found`);
+            }
