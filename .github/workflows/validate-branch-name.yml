@@ -1,0 +1,65 @@
+name: Validate PR Branch Name
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+    branches: [develop]
+
+jobs:
+  validate-branch-name:
+    name: Validate branch naming convention
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Validate branch name
+        id: validate-branch
+        run: |
+          # Get the source branch name
+          BRANCH_NAME="${{ github.head_ref }}"
+          
+          # Check if branch name matches required patterns
+          if [[ "$BRANCH_NAME" =~ ^feat/ ]] || 
+             [[ "$BRANCH_NAME" =~ ^bug/ ]] || 
+             [[ "$BRANCH_NAME" =~ ^hotfix/ ]]; then
+            echo "✅ Branch name '$BRANCH_NAME' matches required pattern"
+            echo "result=success" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Branch name '$BRANCH_NAME' is invalid."
+            echo "::error::PRs to develop must come from branches with prefix:"
+            echo "::error::  • feat/ (feature branches)"
+            echo "::error::  • bug/ (bugfix branches)"
+            echo "::error::  • hotfix/ (hotfix branches)"
+            echo "result=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+      - name: Create status check
+        if: steps.validate-branch.outputs.result == 'success'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: 'success',
+              context: 'Branch Name Validation',
+              description: 'Branch name follows required pattern'
+            });
+            
+      - name: Fail check
+        if: steps.validate-branch.outputs.result == 'failure'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: 'failure',
+              context: 'Branch Name Validation',
+              description: 'Branch name does not follow required pattern'
+            });
