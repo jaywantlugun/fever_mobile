@@ -5,6 +5,12 @@ on:
     types: [opened, reopened, edited, synchronize]
     branches: [develop]
 
+# Add permissions here
+permissions:
+  contents: read
+  statuses: write
+  pull-requests: write
+
 jobs:
   validate-branch-name:
     name: Validate branch naming convention
@@ -36,10 +42,11 @@ jobs:
             exit 1
           fi
           
-      - name: Create status check
+      - name: Create success status check
         if: steps.validate-branch.outputs.result == 'success'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -49,11 +56,18 @@ jobs:
               context: 'Branch Name Validation',
               description: 'Branch name follows required pattern'
             });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ Branch name validation passed!'
+            });
             
-      - name: Fail check
+      - name: Create failure status check
         if: steps.validate-branch.outputs.result == 'failure'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -62,4 +76,10 @@ jobs:
               state: 'failure',
               context: 'Branch Name Validation',
               description: 'Branch name does not follow required pattern'
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '❌ Invalid branch name!\n\nPRs to `develop` must come from branches with these prefixes:\n- `feat/` (feature branches)\n- `bug/` (bugfix branches)\n- `hotfix/` (hotfix branches)'
             });
