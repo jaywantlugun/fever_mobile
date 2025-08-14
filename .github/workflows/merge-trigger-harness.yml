@@ -1,0 +1,20 @@
+name: Expo Merge Trigger
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  trigger-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Harness Pipeline
+        run: |
+          curl -X POST \
+            "https://app.harness.io/gateway/pipeline/api/webhook/custom/trigger/${{ secrets.HARNESS_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "action": "merge_trigger",
+              "branch": "${{ github.ref_name }}",
+              "commit_sha": "${{ github.sha }}",
+              "is_production": ${{ github.ref_name == 'main' }}
+            }'
