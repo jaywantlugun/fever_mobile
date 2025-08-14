@@ -1,0 +1,89 @@
+pipeline:
+  name: expo-pr-validation
+  identifier: expo_pr_validation
+  projectIdentifier: default_project
+  orgIdentifier: default
+  properties:
+    ci:
+      codebase:
+        connectorRef: account.github_connector
+        repoName: your-org/fever_mobile
+        build: <+input>
+  stages:
+    - stage:
+        name: Validate
+        identifier: Validate
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Setup Environment
+                  identifier: Setup_Environment
+                  spec:
+                    shell: Sh
+                    command: |
+                      echo "Node version: $(node --version)"
+                      echo "NPM version: $(npm --version)"
+                      npm install -g @expo/cli eas-cli
+                      npm ci
+                    envVariables:
+                      CI: "true"
+              - step:
+                  type: Run
+                  name: Run Checks
+                  identifier: Run_Checks
+                  spec:
+                    shell: Sh
+                    command: |
+                      echo "Running Expo Doctor..."
+                      expo doctor
+
+                      echo "Type checking..."
+                      npx tsc --noEmit
+
+                      echo "Linting..."
+                      npm run lint
+              - step:
+                  type: Run
+                  name: Build Preview
+                  identifier: Build_Preview
+                  timeout: 30m
+                  spec:
+                    shell: Sh
+                    command: |
+                      echo "Starting EAS build..."
+                      eas build --platform all \
+                        --profile preview \
+                        --non-interactive \
+                        --output=build_artifacts/
+                    envVariables:
+                      EXPO_TOKEN: <+secrets.EXPO_TOKEN>
+                      EAS_NO_VCS: "1"
+                  failureStrategies:
+                    - onFailure:
+                        errors:
+                          - AllErrors
+                        action:
+                          type: Retry
+                          spec:
+                            retryCount: 1
+                            retryIntervals:
+                              - 5m
+              - step:
+                  type: ArtifactoryUpload
+                  name: Upload Build Artifacts
+                  identifier: Upload_Build_Artifacts
+                  spec:
+                    connectorRef: account.artifactory_connector
+                    repository: fever-mobile-builds
+                    target: preview/<+trigger.payload.pr_id>/
+                    sourcePath: build_artifacts/*
