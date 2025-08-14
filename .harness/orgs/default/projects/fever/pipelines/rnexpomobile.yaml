@@ -7,7 +7,7 @@ pipeline:
   properties:
     ci:
       codebase:
-        connectorRef: YOUR_GITHUB_CONNECTOR
+        connectorRef: github_connector
         repoName: jaywantlugun/fever_mobile
         build: <+input>
   stages:
