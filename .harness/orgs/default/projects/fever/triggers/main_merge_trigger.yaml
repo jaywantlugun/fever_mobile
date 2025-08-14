@@ -1,0 +1,21 @@
+trigger:
+  name: main_merge
+  identifier: main_merge
+  enabled: true
+  description: Trigger on merge to main - runs all stages
+  tags: {}
+  orgIdentifier: default
+  projectIdentifier: fever
+  pipelineIdentifier: rnexpomobile
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        type: Push
+        spec:
+          connectorRef: github_connector
+          repoName: fever_mobile
+          branch: main
+  inputSetRefs:
+    - main_merge_inputset

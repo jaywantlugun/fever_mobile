@@ -1,0 +1,21 @@
+trigger:
+  name: develop_merge
+  identifier: develop_merge
+  enabled: true
+  description: Trigger on merge to develop - runs all stages
+  tags: {}
+  orgIdentifier: default
+  projectIdentifier: fever
+  pipelineIdentifier: rnexpomobile
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        type: Push
+        spec:
+          connectorRef: github_connector
+          repoName: fever_mobile
+          branch: develop
+  inputSetRefs:
+    - develop_merge_inputset
