@@ -1,0 +1,105 @@
+pipeline:
+  name: rn-expo-mobile
+  identifier: rnexpomobile
+  projectIdentifier: fever
+  orgIdentifier: default
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: YOUR_GITHUB_CONNECTOR
+        repoName: jaywantlugun/fever_mobile
+        build: <+input>
+  stages:
+    - stage:
+        name: Build
+        identifier: Build
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Install deps
+                  identifier: install
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    command: |
+                      corepack enable
+                      npm ci
+              - step:
+                  type: Run
+                  name: Lint and Test
+                  identifier: test
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    command: |
+                      npm run lint --if-present
+                      npm test --if-present -- --ci
+              - step:
+                  type: Run
+                  name: EAS Build Android
+                  identifier: eas_build_android
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    envVariables:
+                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                    command: |
+                      npm i -g eas-cli
+                      eas build --platform android --profile preview --non-interactive
+              - step:
+                  type: Run
+                  name: EAS Build iOS optional
+                  identifier: eas_build_ios
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    envVariables:
+                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                    command: |
+                      npm i -g eas-cli
+                      # Requires Apple creds registered in EAS project
+                      eas build --platform ios --profile preview --non-interactive
+    - stage:
+        name: Deploy
+        identifier: Deploy
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: EAS OTA Update
+                  identifier: eas_update
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    envVariables:
+                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                      CHANNEL: <+pipeline.variables.CHANNEL>
+                    command: |
+                      npm i -g eas-cli
+                      : "${CHANNEL:=develop}"
+                      eas update --channel "${CHANNEL}" --non-interactive
+  variables:
+    - name: CHANNEL
+      type: String
+      description: EAS channel to publish to (develop/production)
+      value: develop
