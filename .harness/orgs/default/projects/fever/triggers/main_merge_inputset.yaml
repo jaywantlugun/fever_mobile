@@ -1,0 +1,18 @@
+inputSet:
+  name: main_merge_inputset
+  identifier: main_merge_inputset
+  orgIdentifier: default
+  projectIdentifier: fever
+  pipeline:
+    identifier: rnexpomobile
+    stages:
+      - stage:
+          identifier: Build
+          type: CI
+          spec:
+            cloneCodebase: true
+      - stage:
+          identifier: Deploy
+          type: CI
+          spec:
+            cloneCodebase: true
