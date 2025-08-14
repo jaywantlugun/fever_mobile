@@ -54,8 +54,11 @@ pipeline:
                     image: node:20-bullseye
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
                     command: |
                       npm i -g eas-cli
+                      echo "Checking Expo account..."
+                      eas whoami
                       eas build --platform android --profile preview --non-interactive
               - step:
                   type: Run
@@ -66,8 +69,11 @@ pipeline:
                     image: node:20-bullseye
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
                     command: |
                       npm i -g eas-cli
+                      echo "Checking Expo account..."
+                      eas whoami
                       # Requires Apple creds registered in EAS project
                       eas build --platform ios --profile preview --non-interactive
     - stage:
@@ -93,9 +99,12 @@ pipeline:
                     image: node:20-bullseye
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
                       CHANNEL: <+pipeline.variables.CHANNEL>
                     command: |
                       npm i -g eas-cli
+                      echo "Checking Expo account..."
+                      eas whoami
                       : "${CHANNEL:=develop}"
                       eas update --channel "${CHANNEL}" --non-interactive
   variables:
