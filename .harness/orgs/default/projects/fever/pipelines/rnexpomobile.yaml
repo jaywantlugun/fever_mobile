@@ -4,12 +4,18 @@ pipeline:
   projectIdentifier: fever
   orgIdentifier: default
   tags: {}
+  timeout: 30m  # Pipeline will fail if it runs longer than 30 minutes
   properties:
     ci:
       codebase:
         connectorRef: github_connector
         repoName: fever_mobile
         build: <+input>
+      execution:
+        concurrency:
+          group: <+pipeline.sequenceId>-<+codebase.branch>  # Unique group for each branch
+          cancel: true  # Automatically cancels previous runs in same group
+      reportPaths: "**/*.xml"  # For test reports if applicable
   stages:
     - stage:
         name: Build
@@ -74,7 +80,6 @@ pipeline:
                       npm i -g eas-cli
                       echo "Checking Expo account..."
                       eas whoami
-                      # Requires Apple creds registered in EAS project
                       eas build --platform ios --profile preview --non-interactive
     - stage:
         name: Deploy
