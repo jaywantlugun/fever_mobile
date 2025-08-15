@@ -2,15 +2,7 @@
   "build": {
     "preview": {
       "android": {
-        "buildType": "apk",
-        "credentials": {
-          "keystore": {
-            "keystoreBase64": "${EXPO_ANDROID_KEYSTORE_BASE64}",
-            "keystorePassword": "${EXPO_ANDROID_KEYSTORE_PASSWORD}",
-            "keyAlias": "${EXPO_ANDROID_KEY_ALIAS}",
-            "keyPassword": "${EXPO_ANDROID_KEY_PASSWORD}"
-          }
-        }
+        "buildType": "apk"
       },
       "ios": {
         "simulator": true
@@ -18,15 +10,7 @@
     },
     "production": {
       "android": {
-        "buildType": "apk",
-        "credentials": {
-          "keystore": {
-            "keystoreBase64": "${EXPO_ANDROID_KEYSTORE_BASE64}",
-            "keystorePassword": "${EXPO_ANDROID_KEYSTORE_PASSWORD}",
-            "keyAlias": "${EXPO_ANDROID_KEY_ALIAS}",
-            "keyPassword": "${EXPO_ANDROID_KEY_PASSWORD}"
-          }
-        }
+        "buildType": "apk"
       },
       "ios": {}
     }
