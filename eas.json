@@ -7,7 +7,7 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug",
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       },
       "ios": {
         "simulator": true
@@ -19,7 +19,7 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       },
       "ios": {
         "simulator": false

@@ -3,7 +3,6 @@ pipeline:
   identifier: rnexpomobile
   projectIdentifier: fever
   orgIdentifier: default
-  tags: {}
   timeout: 45m
   properties:
     ci:
@@ -33,7 +32,7 @@ pipeline:
             arch: Amd64
           runtime:
             type: Cloud
-            spec: {}
+            spec: {}     # <- added empty spec
           execution:
             steps:
               - step:
@@ -46,6 +45,7 @@ pipeline:
                     command: |
                       corepack enable
                       npm ci
+
               - step:
                   type: Run
                   name: Lint and Test
@@ -56,6 +56,7 @@ pipeline:
                     command: |
                       npm run lint --if-present
                       npm test --if-present -- --ci
+
               - step:
                   type: Run
                   name: EAS Build Android Preview
@@ -66,19 +67,12 @@ pipeline:
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
-                      EXPO_ANDROID_KEYSTORE_BASE64: <+secrets.getValue("EXPO_ANDROID_KEYSTORE_BASE64")>
-                      EXPO_ANDROID_KEYSTORE_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEYSTORE_PASSWORD")>
-                      EXPO_ANDROID_KEY_ALIAS: <+secrets.getValue("EXPO_ANDROID_KEY_ALIAS")>
-                      EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
                     command: |
                       corepack enable
-                      echo "Checking Expo account..."
+                      npm ci
                       npx eas whoami
-                      export EAS_ANDROID_KEYSTORE_BASE64=$EXPO_ANDROID_KEYSTORE_BASE64
-                      export EAS_ANDROID_KEYSTORE_PASSWORD=$EXPO_ANDROID_KEYSTORE_PASSWORD
-                      export EAS_ANDROID_KEY_ALIAS=$EXPO_ANDROID_KEY_ALIAS
-                      export EAS_ANDROID_KEY_PASSWORD=$EXPO_ANDROID_KEY_PASSWORD
                       npx eas build --platform android --profile preview --non-interactive
+
               - step:
                   type: Run
                   name: EAS Build Android Production
@@ -89,22 +83,15 @@ pipeline:
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
-                      EXPO_ANDROID_KEYSTORE_BASE64: <+secrets.getValue("EXPO_ANDROID_KEYSTORE_BASE64")>
-                      EXPO_ANDROID_KEYSTORE_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEYSTORE_PASSWORD")>
-                      EXPO_ANDROID_KEY_ALIAS: <+secrets.getValue("EXPO_ANDROID_KEY_ALIAS")>
-                      EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
                     command: |
                       corepack enable
-                      echo "Checking Expo account..."
+                      npm ci
                       npx eas whoami
-                      export EAS_ANDROID_KEYSTORE_BASE64=$EXPO_ANDROID_KEYSTORE_BASE64
-                      export EAS_ANDROID_KEYSTORE_PASSWORD=$EXPO_ANDROID_KEYSTORE_PASSWORD
-                      export EAS_ANDROID_KEY_ALIAS=$EXPO_ANDROID_KEY_ALIAS
-                      export EAS_ANDROID_KEY_PASSWORD=$EXPO_ANDROID_KEY_PASSWORD
                       npx eas build --platform android --profile production --non-interactive
+
               - step:
                   type: Run
-                  name: EAS Build iOS
+                  name: EAS Build iOS Preview
                   identifier: eas_build_ios
                   spec:
                     shell: Sh
@@ -114,9 +101,10 @@ pipeline:
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
                     command: |
                       corepack enable
-                      echo "Checking Expo account..."
+                      npm ci
                       npx eas whoami
                       npx eas build --platform ios --profile preview --non-interactive
+
     - stage:
         name: Deploy
         identifier: Deploy
@@ -128,7 +116,7 @@ pipeline:
             arch: Amd64
           runtime:
             type: Cloud
-            spec: {}
+            spec: {}     # <- added empty spec
           execution:
             steps:
               - step:
@@ -144,7 +132,7 @@ pipeline:
                       CHANNEL: <+pipeline.variables.CHANNEL>
                     command: |
                       corepack enable
-                      echo "Checking Expo account..."
+                      npm ci
                       npx eas whoami
                       : "${CHANNEL:=develop}"
                       npx eas update --channel "${CHANNEL}" --non-interactive
