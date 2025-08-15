@@ -38,7 +38,7 @@ pipeline:
             steps:
               - step:
                   type: Run
-                  name: Install dependencies
+                  name: Install dependencies and EAS CLI
                   identifier: install
                   spec:
                     shell: Sh
@@ -46,6 +46,7 @@ pipeline:
                     command: |
                       corepack enable
                       npm ci
+                      npm i -g eas-cli
               - step:
                   type: Run
                   name: Lint and Test
@@ -71,9 +72,12 @@ pipeline:
                       EXPO_ANDROID_KEY_ALIAS: <+secrets.getValue("EXPO_ANDROID_KEY_ALIAS")>
                       EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
                     command: |
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
                       eas whoami
+                      export EAS_ANDROID_KEYSTORE_BASE64=$EXPO_ANDROID_KEYSTORE_BASE64
+                      export EAS_ANDROID_KEYSTORE_PASSWORD=$EXPO_ANDROID_KEYSTORE_PASSWORD
+                      export EAS_ANDROID_KEY_ALIAS=$EXPO_ANDROID_KEY_ALIAS
+                      export EAS_ANDROID_KEY_PASSWORD=$EXPO_ANDROID_KEY_PASSWORD
                       eas build --platform android --profile preview --non-interactive
               - step:
                   type: Run
@@ -90,9 +94,12 @@ pipeline:
                       EXPO_ANDROID_KEY_ALIAS: <+secrets.getValue("EXPO_ANDROID_KEY_ALIAS")>
                       EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
                     command: |
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
                       eas whoami
+                      export EAS_ANDROID_KEYSTORE_BASE64=$EXPO_ANDROID_KEYSTORE_BASE64
+                      export EAS_ANDROID_KEYSTORE_PASSWORD=$EXPO_ANDROID_KEYSTORE_PASSWORD
+                      export EAS_ANDROID_KEY_ALIAS=$EXPO_ANDROID_KEY_ALIAS
+                      export EAS_ANDROID_KEY_PASSWORD=$EXPO_ANDROID_KEY_PASSWORD
                       eas build --platform android --profile production --non-interactive
               - step:
                   type: Run
@@ -104,8 +111,8 @@ pipeline:
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
+                      # Optional: add Apple credentials here if needed
                     command: |
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
                       eas whoami
                       eas build --platform ios --profile preview --non-interactive
@@ -135,7 +142,6 @@ pipeline:
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
                       CHANNEL: <+pipeline.variables.CHANNEL>
                     command: |
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
                       eas whoami
                       : "${CHANNEL:=develop}"
