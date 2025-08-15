@@ -4,7 +4,7 @@ pipeline:
   projectIdentifier: fever
   orgIdentifier: default
   tags: {}
-  timeout: 30m
+  timeout: 45m
   properties:
     ci:
       codebase:
@@ -16,6 +16,11 @@ pipeline:
           group: <+pipeline.sequenceId>-<+codebase.branch>
           cancel: true
       reportPaths: "**/*.xml"
+  variables:
+    - name: CHANNEL
+      type: String
+      description: EAS channel to publish to (develop/production)
+      value: develop
   stages:
     - stage:
         name: Build
@@ -33,7 +38,7 @@ pipeline:
             steps:
               - step:
                   type: Run
-                  name: Install dependencies
+                  name: Install dependencies and EAS CLI
                   identifier: install
                   spec:
                     shell: Sh
@@ -41,6 +46,7 @@ pipeline:
                     command: |
                       corepack enable
                       npm ci
+                      npm i -g eas-cli
               - step:
                   type: Run
                   name: Lint and Test
@@ -53,8 +59,8 @@ pipeline:
                       npm test --if-present -- --ci
               - step:
                   type: Run
-                  name: EAS Build Android
-                  identifier: eas_build_android
+                  name: EAS Build Android Preview
+                  identifier: eas_build_android_preview
                   spec:
                     shell: Sh
                     image: node:20-bullseye
@@ -66,13 +72,30 @@ pipeline:
                       EXPO_ANDROID_KEY_ALIAS: <+secrets.getValue("EXPO_ANDROID_KEY_ALIAS")>
                       EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
                     command: |
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
                       eas whoami
                       eas build --platform android --profile preview --non-interactive
               - step:
                   type: Run
-                  name: EAS Build iOS optional
+                  name: EAS Build Android Production
+                  identifier: eas_build_android_production
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    envVariables:
+                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
+                      EXPO_ANDROID_KEYSTORE_BASE64: <+secrets.getValue("EXPO_ANDROID_KEYSTORE_BASE64")>
+                      EXPO_ANDROID_KEYSTORE_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEYSTORE_PASSWORD")>
+                      EXPO_ANDROID_KEY_ALIAS: <+secrets.getValue("EXPO_ANDROID_KEY_ALIAS")>
+                      EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
+                    command: |
+                      echo "Checking Expo account..."
+                      eas whoami
+                      eas build --platform android --profile production --non-interactive
+              - step:
+                  type: Run
+                  name: EAS Build iOS
                   identifier: eas_build_ios
                   spec:
                     shell: Sh
@@ -80,8 +103,8 @@ pipeline:
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
+                      # Optional iOS credentials can be added here
                     command: |
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
                       eas whoami
                       eas build --platform ios --profile preview --non-interactive
@@ -111,13 +134,7 @@ pipeline:
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
                       CHANNEL: <+pipeline.variables.CHANNEL>
                     command: |
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
                       eas whoami
                       : "${CHANNEL:=develop}"
                       eas update --channel "${CHANNEL}" --non-interactive
-  variables:
-    - name: CHANNEL
-      type: String
-      description: EAS channel to publish to (develop/production)
-      value: develop
