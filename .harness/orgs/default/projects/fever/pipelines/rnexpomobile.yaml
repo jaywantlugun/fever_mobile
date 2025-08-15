@@ -72,14 +72,13 @@ pipeline:
                       EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
                     command: |
                       corepack enable
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
-                      eas whoami
+                      npx eas whoami
                       export EAS_ANDROID_KEYSTORE_BASE64=$EXPO_ANDROID_KEYSTORE_BASE64
                       export EAS_ANDROID_KEYSTORE_PASSWORD=$EXPO_ANDROID_KEYSTORE_PASSWORD
                       export EAS_ANDROID_KEY_ALIAS=$EXPO_ANDROID_KEY_ALIAS
                       export EAS_ANDROID_KEY_PASSWORD=$EXPO_ANDROID_KEY_PASSWORD
-                      eas build --platform android --profile preview --non-interactive
+                      npx eas build --platform android --profile preview --non-interactive
               - step:
                   type: Run
                   name: EAS Build Android Production
@@ -96,14 +95,13 @@ pipeline:
                       EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
                     command: |
                       corepack enable
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
-                      eas whoami
+                      npx eas whoami
                       export EAS_ANDROID_KEYSTORE_BASE64=$EXPO_ANDROID_KEYSTORE_BASE64
                       export EAS_ANDROID_KEYSTORE_PASSWORD=$EXPO_ANDROID_KEYSTORE_PASSWORD
                       export EAS_ANDROID_KEY_ALIAS=$EXPO_ANDROID_KEY_ALIAS
                       export EAS_ANDROID_KEY_PASSWORD=$EXPO_ANDROID_KEY_PASSWORD
-                      eas build --platform android --profile production --non-interactive
+                      npx eas build --platform android --profile production --non-interactive
               - step:
                   type: Run
                   name: EAS Build iOS
@@ -116,10 +114,9 @@ pipeline:
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
                     command: |
                       corepack enable
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
-                      eas whoami
-                      eas build --platform ios --profile preview --non-interactive
+                      npx eas whoami
+                      npx eas build --platform ios --profile preview --non-interactive
     - stage:
         name: Deploy
         identifier: Deploy
@@ -147,8 +144,7 @@ pipeline:
                       CHANNEL: <+pipeline.variables.CHANNEL>
                     command: |
                       corepack enable
-                      npm i -g eas-cli
                       echo "Checking Expo account..."
-                      eas whoami
+                      npx eas whoami
                       : "${CHANNEL:=develop}"
-                      eas update --channel "${CHANNEL}" --non-interactive
+                      npx eas update --channel "${CHANNEL}" --non-interactive
