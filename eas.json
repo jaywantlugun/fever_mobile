@@ -8,7 +8,8 @@
       "ios": {
         "simulator": true
       },
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "preview"
     },
     "production": {
       "android": {
@@ -18,7 +19,8 @@
       "ios": {
         "simulator": false
       },
-      "distribution": "store"
+      "distribution": "store",
+      "environment": "production"
     }
   }
 }
