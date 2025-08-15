@@ -4,7 +4,7 @@ pipeline:
   projectIdentifier: fever
   orgIdentifier: default
   tags: {}
-  timeout: 30m  # Pipeline will fail if it runs longer than 30 minutes
+  timeout: 30m
   properties:
     ci:
       codebase:
@@ -13,9 +13,9 @@ pipeline:
         build: <+input>
       execution:
         concurrency:
-          group: <+pipeline.sequenceId>-<+codebase.branch>  # Unique group for each branch
-          cancel: true  # Automatically cancels previous runs in same group
-      reportPaths: "**/*.xml"  # For test reports if applicable
+          group: <+pipeline.sequenceId>-<+codebase.branch>
+          cancel: true
+      reportPaths: "**/*.xml"
   stages:
     - stage:
         name: Build
@@ -61,6 +61,10 @@ pipeline:
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
+                      EXPO_ANDROID_KEYSTORE_BASE64: <+secrets.getValue("EXPO_ANDROID_KEYSTORE_BASE64")>
+                      EXPO_ANDROID_KEYSTORE_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEYSTORE_PASSWORD")>
+                      EXPO_ANDROID_KEY_ALIAS: <+secrets.getValue("EXPO_ANDROID_KEY_ALIAS")>
+                      EXPO_ANDROID_KEY_PASSWORD: <+secrets.getValue("EXPO_ANDROID_KEY_PASSWORD")>
                     command: |
                       npm i -g eas-cli
                       echo "Checking Expo account..."
