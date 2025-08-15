@@ -23,3 +23,18 @@ trigger:
           targetBranch: main
   inputSetRefs:
     - main_pull_request_inputset
+
+
+inputSet:
+  name: main_pull_request_inputset
+  identifier: main_pull_request_inputset
+  orgIdentifier: default
+  projectIdentifier: fever
+  pipeline:
+    identifier: rnexpomobile
+    stages:
+      - stage:
+          identifier: Build
+          type: CI
+          spec:
+            cloneCodebase: true
