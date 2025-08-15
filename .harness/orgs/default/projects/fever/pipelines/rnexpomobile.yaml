@@ -104,7 +104,6 @@ pipeline:
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
-                      # Optional iOS credentials can be added here
                     command: |
                       npm i -g eas-cli
                       echo "Checking Expo account..."
