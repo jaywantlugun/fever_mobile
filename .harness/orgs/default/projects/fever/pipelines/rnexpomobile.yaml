@@ -3,7 +3,7 @@ pipeline:
   identifier: rnexpomobile
   projectIdentifier: fever
   orgIdentifier: default
-  timeout: 45m
+  timeout: 2h
   properties:
     ci:
       codebase:
