@@ -34,9 +34,12 @@ pipeline:
         type: CI
         spec:
           cloneCodebase: true
-          platform:
-            os: Linux
-            arch: Amd64
+          infrastructure:
+            type: KubernetesDirect
+            spec:
+              connectorRef: localdockerk8s  # matches your connector identifier
+              namespace: default  # or harness-delegate-ng
+              automountServiceAccountToken: true
           execution:
             steps:
               - step:
