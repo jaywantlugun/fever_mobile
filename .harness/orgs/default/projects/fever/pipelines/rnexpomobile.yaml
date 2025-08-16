@@ -65,7 +65,7 @@ pipeline:
               # --- LOCAL sanity check ---
               - step:
                   type: Run
-                  name: Local Expo sanity with no cloud build
+                  name: Local Expo sanity check with no cloud build
                   identifier: expo_local_sanity
                   when:
                     stageStatus: Success
