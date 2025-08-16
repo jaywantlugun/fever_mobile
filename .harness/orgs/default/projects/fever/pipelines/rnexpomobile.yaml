@@ -4,6 +4,7 @@ pipeline:
   projectIdentifier: fever
   orgIdentifier: default
   timeout: 2h
+  allowStageExecutions: true
 
   properties:
     ci:
