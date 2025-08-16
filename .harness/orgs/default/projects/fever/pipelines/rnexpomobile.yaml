@@ -50,6 +50,7 @@ pipeline:
                   name: Install dependencies
                   identifier: install
                   spec:
+                    connectorRef: localdockerconnector
                     shell: Sh
                     image: node:20-bullseye
                     command: |
@@ -61,6 +62,7 @@ pipeline:
                   name: Lint and Test
                   identifier: test
                   spec:
+                    connectorRef: localdockerconnector
                     shell: Sh
                     image: node:20-bullseye
                     command: |
@@ -72,6 +74,7 @@ pipeline:
                   name: Local Build Check
                   identifier: local_build
                   spec:
+                    connectorRef: localdockerconnector
                     shell: Sh
                     image: expo-selfhosted:latest
                     command: |
