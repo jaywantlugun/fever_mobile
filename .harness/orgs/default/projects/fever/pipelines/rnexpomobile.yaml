@@ -37,7 +37,7 @@ pipeline:
           infrastructure:
             type: KubernetesDirect # Specifies using a local runner
             spec:
-              connectorRef: local-docker-connector
+              connectorRef: localdockerconnector
               namespace: default
               delegateSelectors: # Select the delegate with the specified tag
                 - docker-delegate
