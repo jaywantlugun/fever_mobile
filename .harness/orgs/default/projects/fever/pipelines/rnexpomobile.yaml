@@ -44,10 +44,10 @@ pipeline:
             steps:
               - step:
                   type: Run
-                  connectorRef: localdockerk8s
                   name: Install dependencies
                   identifier: install
                   spec:
+                    connectorRef: localdockerk8s
                     shell: Sh
                     image: node:20-bullseye
                     command: |
@@ -56,10 +56,10 @@ pipeline:
 
               - step:
                   type: Run
-                  connectorRef: localdockerk8s
                   name: Lint and Test
                   identifier: test
                   spec:
+                    connectorRef: localdockerk8s
                     shell: Sh
                     image: node:20-bullseye
                     command: |
@@ -68,10 +68,10 @@ pipeline:
 
               - step:
                   type: Run
-                  connectorRef: localdockerk8s
                   name: Local Build Check
                   identifier: local_build
                   spec:
+                    connectorRef: localdockerk8s
                     shell: Sh
                     image: expo-selfhosted:latest
                     command: |
