@@ -135,7 +135,7 @@ pipeline:
                       npx eas build --platform ios --profile production --non-interactive
 
     # ---------------------------------------------------------------------
-    # STAGE 3: OTA UPDATE (Only for merges to main)
+    # STAGE 3: OTA UPDATE (Only for merges to main branch)
     # ---------------------------------------------------------------------
     - stage:
         name: OTA Update
