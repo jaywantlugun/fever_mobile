@@ -155,14 +155,8 @@ pipeline:
                   spec:
                     shell: Sh
                     image: node:20-bullseye
-                    envVariables:
-                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
-                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
                     command: |
-                      corepack enable || true
-                      npm ci
-                      npx eas whoami
-                      npx eas update --channel "develop" --non-interactive
+                      echo "🚫 Skipping EAS OTA update for develop branch to avoid using free build quota."
 
               # --- OTA to PRODUCTION on merges to main ---
               - step:
