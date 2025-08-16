@@ -35,11 +35,14 @@ pipeline:
         spec:
           cloneCodebase: true
           infrastructure:
-            type: KubernetesDirect
+            type: KubernetesDirect # Specifies using a local runner
             spec:
-              connectorRef: localdockerk8s  # matches your connector identifier
-              namespace: default  # or harness-delegate-ng
+              connectorRef: local-docker-connector
+              namespace: default
+              delegateSelectors: # Select the delegate with the specified tag
+                - docker-delegate
               automountServiceAccountToken: true
+              nodeSelector: {}
           execution:
             steps:
               - step:
@@ -47,7 +50,6 @@ pipeline:
                   name: Install dependencies
                   identifier: install
                   spec:
-                    connectorRef: localdockerk8s
                     shell: Sh
                     image: node:20-bullseye
                     command: |
@@ -59,7 +61,6 @@ pipeline:
                   name: Lint and Test
                   identifier: test
                   spec:
-                    connectorRef: localdockerk8s
                     shell: Sh
                     image: node:20-bullseye
                     command: |
@@ -71,7 +72,6 @@ pipeline:
                   name: Local Build Check
                   identifier: local_build
                   spec:
-                    connectorRef: localdockerk8s
                     shell: Sh
                     image: expo-selfhosted:latest
                     command: |
@@ -142,7 +142,7 @@ pipeline:
                       npx eas build --platform ios --profile production --non-interactive
 
     # ---------------------------------------------------------------------
-    # STAGE 3: OTA UPDATE (Only for merges to main branch)
+    # STAGE 3: OTA UPDATE (Only for merges to main)
     # ---------------------------------------------------------------------
     - stage:
         name: OTA Update
