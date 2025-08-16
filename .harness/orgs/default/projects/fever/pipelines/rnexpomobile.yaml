@@ -25,19 +25,17 @@ pipeline:
 
   stages:
     # ---------------------------------------------------------------------
-    # STAGE 1: BUILD
+    # STAGE 1: VALIDATION (Runs for all scenarios)
     # ---------------------------------------------------------------------
     - stage:
-        name: Build
-        identifier: Build
+        name: Validate
+        identifier: Validate
         type: CI
         spec:
           cloneCodebase: true
           platform:
             os: Linux
             arch: Amd64
-          # delegateSelectors:
-          #   - local-docker
           execution:
             steps:
               - step:
@@ -62,14 +60,10 @@ pipeline:
                       npm run lint --if-present
                       npm test --if-present -- --ci
 
-              # --- LOCAL sanity check ---
               - step:
                   type: Run
-                  name: Local Expo sanity check with no cloud build
-                  identifier: expo_local_sanity
-                  when:
-                    stageStatus: Success
-                    condition: <+trigger.type> == "PullRequest" || <+codebase.branch> == "develop"
+                  name: Local Build Check
+                  identifier: local_build
                   spec:
                     shell: Sh
                     image: expo-selfhosted:latest
@@ -91,14 +85,27 @@ pipeline:
                         exit 1
                       fi
 
-              # --- Expo CLOUD build ONLY on merge→main ---
+    # ---------------------------------------------------------------------
+    # STAGE 2: PRODUCTION BUILD (Only for merges to main)
+    # ---------------------------------------------------------------------
+    - stage:
+        name: Production Build
+        identifier: Production_Build
+        type: CI
+        when:
+          pipelineStatus: Success
+          condition: <+trigger.type> != "PullRequest" && <+codebase.branch> == "main"
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          execution:
+            steps:
               - step:
                   type: Run
-                  name: Expo Cloud Build with Android prod
+                  name: Expo Cloud Build - Android
                   identifier: eas_build_android_production
-                  when:
-                    stageStatus: Success
-                    condition: <+trigger.type> != "PullRequest" && <+codebase.branch> == "main"
                   spec:
                     shell: Sh
                     image: node:20-bullseye
@@ -113,11 +120,8 @@ pipeline:
 
               - step:
                   type: Run
-                  name: Expo Cloud Build with iOS prod
+                  name: Expo Cloud Build - iOS
                   identifier: eas_build_ios_production
-                  when:
-                    stageStatus: Success
-                    condition: <+trigger.type> != "PullRequest" && <+codebase.branch> == "main"
                   spec:
                     shell: Sh
                     image: node:20-bullseye
@@ -131,12 +135,15 @@ pipeline:
                       npx eas build --platform ios --profile production --non-interactive
 
     # ---------------------------------------------------------------------
-    # STAGE 2: DEPLOY
+    # STAGE 3: OTA UPDATE (Only for merges to main)
     # ---------------------------------------------------------------------
     - stage:
-        name: Deploy
-        identifier: Deploy
+        name: OTA Update
+        identifier: OTA_Update
         type: CI
+        when:
+          pipelineStatus: Success
+          condition: <+trigger.type> != "PullRequest" && <+codebase.branch> == "main"
         spec:
           cloneCodebase: true
           platform:
@@ -144,28 +151,10 @@ pipeline:
             arch: Amd64
           execution:
             steps:
-              # --- OTA to DEVELOP on merges to develop ---
               - step:
                   type: Run
-                  name: EAS OTA Update on develop
-                  identifier: eas_update_develop
-                  when:
-                    stageStatus: Success
-                    condition: <+codebase.branch> == "develop"
-                  spec:
-                    shell: Sh
-                    image: node:20-bullseye
-                    command: |
-                      echo "🚫 Skipping EAS OTA update for develop branch to avoid using free build quota."
-
-              # --- OTA to PRODUCTION on merges to main ---
-              - step:
-                  type: Run
-                  name: EAS OTA Update on production
+                  name: EAS OTA Update
                   identifier: eas_update_production
-                  when:
-                    stageStatus: Success
-                    condition: <+codebase.branch> == "main"
                   spec:
                     shell: Sh
                     image: node:20-bullseye
