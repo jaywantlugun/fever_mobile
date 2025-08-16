@@ -2,7 +2,7 @@ name: Validate PRs to Main Branch
 
 on:
   pull_request:
-    types: [opened, reopened, edited, synchronize]
+    types: [opened, reopened, edited, synchronize, ready_for_review]
     branches: [main]
 
 permissions:
@@ -16,11 +16,24 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      # Immediate pending status
+      - name: Set initial pending status
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: 'pending',
+              context: 'PR Source Validation',
+              description: 'Validating PR source branch...'
+            });
+    
       - name: Extract branch information
         id: branch-info
         run: |
-          echo "PR Source Branch: ${{ github.head_ref }}"
-          echo "PR Target Branch: ${{ github.base_ref }}"
           echo "pr_source_branch=${{ github.head_ref }}" >> $GITHUB_OUTPUT
           echo "pr_target_branch=${{ github.base_ref }}" >> $GITHUB_OUTPUT
           
@@ -28,50 +41,35 @@ jobs:
         id: validate-branch
         run: |
           if [ "${{ steps.branch-info.outputs.pr_source_branch }}" != "develop" ]; then
-            echo "::error::🚫 Invalid PR Source Branch Detected"
-            echo "::error::PRs to main branch must originate from 'develop' branch"
-            echo "::error::Current source branch: ${{ steps.branch-info.outputs.pr_source_branch }}"
             echo "validation_passed=false" >> $GITHUB_OUTPUT
             exit 1
           else
-            echo "✅ Valid PR source branch (develop)"
             echo "validation_passed=true" >> $GITHUB_OUTPUT
           fi
           
-      - name: Create success status check
-        if: steps.validate-branch.outputs.validation_passed == 'true'
+      - name: Update status check
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const passed = '${{ steps.validate-branch.outputs.validation_passed }}' === 'true';
+            
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.payload.pull_request.head.sha,
-              state: 'success',
+              state: passed ? 'success' : 'failure',
               context: 'PR Source Validation',
-              description: 'Valid PR source branch (from develop)',
-              target_url: 'https://github.com/${{ github.repository }}/blob/main/.github/workflows/validate-pr-to-main.yml'
+              description: passed 
+                ? 'Valid PR source branch (from develop)' 
+                : 'PR must come from develop branch'
             });
             
-      - name: Create failure status check
-        if: steps.validate-branch.outputs.validation_passed == 'false'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.payload.pull_request.head.sha,
-              state: 'failure',
-              context: 'PR Source Validation',
-              description: 'PR must come from develop branch',
-              target_url: 'https://github.com/${{ github.repository }}/blob/main/.github/workflows/validate-pr-to-main.yml'
-            });
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: '⚠️ **PR Rejected**\n\nThis repository requires PRs to `main` branch to originate from the `develop` branch.\n\nPlease create a new PR from the `develop` branch instead.'
-            });
+            if (!passed) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: '⚠️ **PR Rejected**\n\nPRs to `main` must originate from `develop` branch.\n\nCurrent source: `${{ github.head_ref }}`'
+              });
+            }

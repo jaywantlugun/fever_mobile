@@ -3,26 +3,46 @@ pipeline:
   identifier: rnexpomobile
   projectIdentifier: fever
   orgIdentifier: default
-  tags: {}
+  timeout: 2h
+  allowStageExecutions: true
+
   properties:
     ci:
       codebase:
         connectorRef: github_connector
         repoName: fever_mobile
         build: <+input>
+      execution:
+        concurrency:
+          group: <+pipeline.sequenceId>-<+codebase.branch>
+          cancel: true
+      reportPaths: "**/*.xml"
+
+  variables:
+    - name: CHANNEL
+      type: String
+      description: EAS channel to publish to (develop/production)
+      value: develop
+
   stages:
+    # ---------------------------------------------------------------------
+    # STAGE 1: VALIDATION (Runs for all scenarios)
+    # ---------------------------------------------------------------------
     - stage:
-        name: Build
-        identifier: Build
+        name: Validate
+        identifier: Validate
         type: CI
         spec:
           cloneCodebase: true
-          platform:
-            os: Linux
-            arch: Amd64
-          runtime:
-            type: Cloud
-            spec: {}
+          infrastructure:
+            type: KubernetesDirect # Specifies using a local runner
+            spec:
+              connectorRef: localdockerconnector
+              namespace: default
+              delegateSelectors: # Select the delegate with the specified tag
+                - docker-delegate
+              automountServiceAccountToken: true
+              nodeSelector: {}
           execution:
             steps:
               - step:
@@ -30,85 +50,129 @@ pipeline:
                   name: Install dependencies
                   identifier: install
                   spec:
+                    connectorRef: localdockerconnector
                     shell: Sh
                     image: node:20-bullseye
                     command: |
-                      corepack enable
+                      corepack enable || true
                       npm ci
+
               - step:
                   type: Run
                   name: Lint and Test
                   identifier: test
                   spec:
+                    connectorRef: localdockerconnector
                     shell: Sh
                     image: node:20-bullseye
                     command: |
                       npm run lint --if-present
                       npm test --if-present -- --ci
+
               - step:
                   type: Run
-                  name: EAS Build Android
-                  identifier: eas_build_android
+                  name: Local Build Check
+                  identifier: local_build
                   spec:
+                    connectorRef: localdockerconnector
                     shell: Sh
-                    image: node:20-bullseye
-                    envVariables:
-                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
-                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
+                    image: expo-selfhosted:latest
                     command: |
-                      npm i -g eas-cli
-                      echo "Checking Expo account..."
-                      eas whoami
-                      eas build --platform android --profile preview --non-interactive
-              - step:
-                  type: Run
-                  name: EAS Build iOS optional
-                  identifier: eas_build_ios
-                  spec:
-                    shell: Sh
-                    image: node:20-bullseye
-                    envVariables:
-                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
-                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
-                    command: |
-                      npm i -g eas-cli
-                      echo "Checking Expo account..."
-                      eas whoami
-                      # Requires Apple creds registered in EAS project
-                      eas build --platform ios --profile preview --non-interactive
+                      set -e
+                      npm ci
+                      npx expo start --non-interactive --offline --clear > expo.log 2>&1 &
+                      EXPO_PID=$!
+                      sleep 60
+                      if curl -fsS http://127.0.0.1:19002 >/dev/null; then
+                        echo "✅ Expo dev server started successfully."
+                        kill $EXPO_PID
+                        wait $EXPO_PID || true
+                        exit 0
+                      else
+                        echo "❌ Expo dev server did not start. Recent logs:"
+                        tail -n +200 expo.log || true
+                        kill $EXPO_PID || true
+                        exit 1
+                      fi
+
+    # ---------------------------------------------------------------------
+    # STAGE 2: PRODUCTION BUILD (Only for merges to main)
+    # ---------------------------------------------------------------------
     - stage:
-        name: Deploy
-        identifier: Deploy
+        name: Production Build
+        identifier: Production_Build
         type: CI
+        when:
+          pipelineStatus: Success
+          condition: <+trigger.type> != "PullRequest" && <+codebase.branch> == "main"
         spec:
           cloneCodebase: true
           platform:
             os: Linux
             arch: Amd64
-          runtime:
-            type: Cloud
-            spec: {}
           execution:
             steps:
               - step:
                   type: Run
-                  name: EAS OTA Update
-                  identifier: eas_update
+                  name: Expo Cloud Build - Android
+                  identifier: eas_build_android_production
                   spec:
                     shell: Sh
                     image: node:20-bullseye
                     envVariables:
                       EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
                       EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
-                      CHANNEL: <+pipeline.variables.CHANNEL>
                     command: |
-                      npm i -g eas-cli
-                      echo "Checking Expo account..."
-                      eas whoami
-                      : "${CHANNEL:=develop}"
-                      eas update --channel "${CHANNEL}" --non-interactive
-  variables:
-    - name: CHANNEL
-      type: String
-      description: EAS channel to publish to (develop/production)
-      value: develop
+                      corepack enable || true
+                      npm ci
+                      npx eas whoami
+                      npx eas build --platform android --profile production --non-interactive
+
+              - step:
+                  type: Run
+                  name: Expo Cloud Build - iOS
+                  identifier: eas_build_ios_production
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    envVariables:
+                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
+                    command: |
+                      corepack enable || true
+                      npm ci
+                      npx eas whoami
+                      npx eas build --platform ios --profile production --non-interactive
+
+    # ---------------------------------------------------------------------
+    # STAGE 3: OTA UPDATE (Only for merges to main)
+    # ---------------------------------------------------------------------
+    - stage:
+        name: OTA Update
+        identifier: OTA_Update
+        type: CI
+        when:
+          pipelineStatus: Success
+          condition: <+trigger.type> != "PullRequest" && <+codebase.branch> == "main"
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: EAS OTA Update
+                  identifier: eas_update_production
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    envVariables:
+                      EAS_TOKEN: <+secrets.getValue("EAS_TOKEN")>
+                      EXPO_TOKEN: <+secrets.getValue("EXPO_TOKEN")>
+                    command: |
+                      corepack enable || true
+                      npm ci
+                      npx eas whoami
+                      npx eas update --channel "production" --non-interactive
