@@ -26,7 +26,7 @@ pipeline:
 
   stages:
     # ---------------------------------------------------------------------
-    # STAGE 1: VALIDATION (Windows Docker Runner)
+    # STAGE 1: VALIDATION (Runs on Linux Docker Runner)
     # ---------------------------------------------------------------------
     - stage:
         name: Validate
@@ -35,85 +35,62 @@ pipeline:
         spec:
           cloneCodebase: true
           platform:
-            os: Windows
+            os: Linux
             arch: Amd64
           runtime:
             type: Docker
             spec: {}
           delegateSelectors:
-            - windows-amd64
+            - linux-amd64
           execution:
             steps:
-              # Step 0: Verify Docker Bridge Network
-              - step:
-                  type: Run
-                  name: Verify Docker Bridge Network
-                  identifier: verify_docker_bridge
-                  spec:
-                    shell: Powershell
-                    image: mcr.microsoft.com/powershell:latest
-                    command: |
-                      Write-Output "Checking Docker networks..."
-                      $networks = docker network ls --format '{{.Name}}'
-                      if ($networks -contains "bridge") {
-                        Write-Output "✅ Bridge network exists."
-                      } else {
-                        Write-Output "❌ Bridge network not found!"
-                        docker network create bridge
-                        Write-Output "Created bridge network."
-                      }
-
-              # Step 1: Install Dependencies
               - step:
                   type: Run
                   name: Install dependencies
                   identifier: install
                   spec:
-                    shell: Powershell
+                    shell: Sh
                     image: node:20-bullseye
                     command: |
                       corepack enable
                       npm ci
 
-              # Step 2: Lint and Test
               - step:
                   type: Run
                   name: Lint and Test
                   identifier: test
                   spec:
-                    shell: Powershell
+                    shell: Sh
                     image: node:20-bullseye
                     command: |
                       npm run lint --if-present
                       npm test --if-present -- --ci
 
-              # Step 3: Local Build Check
               - step:
                   type: Run
                   name: Local Build Check
                   identifier: local_build
                   spec:
-                    shell: Powershell
+                    shell: Sh
                     image: expo-selfhosted:latest
                     command: |
-                      Write-Output "Starting Expo Dev Server..."
+                      echo "Starting Expo Dev Server..."
                       npm ci
-                      Start-Process -NoNewWindow -FilePath "npx" -ArgumentList "expo start --non-interactive --offline --clear" -RedirectStandardOutput expo.log -RedirectStandardError expo.log -PassThru | Tee-Object -Variable expoProcess
-                      Start-Sleep -Seconds 60
-                      try {
-                        Invoke-WebRequest -Uri http://127.0.0.1:19002 -UseBasicParsing | Out-Null
-                        Write-Output "✅ Expo dev server started successfully."
-                        Stop-Process -Id $expoProcess.Id -Force
+                      nohup npx expo start --non-interactive --offline --clear > expo.log 2>&1 &
+                      sleep 60
+                      if curl -s http://127.0.0.1:19002 >/dev/null; then
+                        echo "✅ Expo dev server started successfully."
+                        pkill -f "expo start"
                         exit 0
-                      } catch {
-                        Write-Output "❌ Expo dev server did not start. Showing last logs..."
-                        Get-Content expo.log -Tail 200
-                        Stop-Process -Id $expoProcess.Id -Force
+                      else
+                        echo "❌ Expo dev server did not start. Showing last logs..."
+                        tail -n 200 expo.log
+                        pkill -f "expo start"
                         exit 1
                       }
 
     # ---------------------------------------------------------------------
-    # STAGE 2: PRODUCTION BUILD (Linux, main branch only)
+    # STAGE 2: PRODUCTION BUILD (Only for merges to main)
     # ---------------------------------------------------------------------
     - stage:
         name: Production Build
@@ -162,7 +139,7 @@ pipeline:
                       npx eas build --platform ios --profile production --non-interactive
 
     # ---------------------------------------------------------------------
-    # STAGE 3: OTA UPDATE (Linux, main branch only)
+    # STAGE 3: OTA UPDATE (Only for merges to main)
     # ---------------------------------------------------------------------
     - stage:
         name: OTA Update
