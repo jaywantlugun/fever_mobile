@@ -41,7 +41,7 @@ pipeline:
             type: Docker
             spec: {}
           delegateSelectors:
-            - linux-amd64
+            - windows-amd64
           execution:
             steps:
               - step:
@@ -170,3 +170,5 @@ pipeline:
                       npm ci
                       npx eas whoami
                       npx eas update --channel "production" --non-interactive
+
+                      
