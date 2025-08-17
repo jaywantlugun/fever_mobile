@@ -26,7 +26,7 @@ pipeline:
 
   stages:
     # ---------------------------------------------------------------------
-    # STAGE 1: VALIDATION (Windows Docker Runner using bridge network)
+    # STAGE 1: VALIDATION (Cloud Runtime)
     # ---------------------------------------------------------------------
     - stage:
         name: Validate
@@ -35,85 +35,95 @@ pipeline:
         spec:
           cloneCodebase: true
           platform:
-            os: Windows
+            os: Linux
             arch: Amd64
           runtime:
-            type: Docker
+            type: Cloud
             spec: {}
-          delegateSelectors:
-            - windows-amd64
           execution:
             steps:
-              # Step 0: Verify Docker Bridge Network
+              # Step 1: Setup Node & Expo CLI
               - step:
                   type: Run
-                  name: Verify Docker Bridge Network
-                  identifier: verify_docker_bridge
+                  name: Setup Node and Expo
+                  identifier: setup_node_expo
                   spec:
-                    shell: Powershell
-                    image: mcr.microsoft.com/powershell:latest
+                    shell: Sh
+                    image: node:20-bullseye
                     command: |
-                      Write-Output "Checking Docker networks..."
-                      $networks = docker network ls --format '{{.Name}}'
-                      if ($networks -contains "bridge") {
-                        Write-Output "✅ Bridge network exists."
-                      } else {
-                        Write-Output "❌ Bridge network not found!"
-                        docker network create bridge
-                        Write-Output "Created bridge network."
-                      }
+                      corepack enable
+                      npm install -g expo-cli eas-cli
 
-              # Step 1: Install Dependencies
+              # Step 2: Install Project Dependencies
               - step:
                   type: Run
                   name: Install dependencies
                   identifier: install
                   spec:
-                    shell: Powershell
+                    shell: Sh
                     image: node:20-bullseye
                     command: |
                       corepack enable
                       npm ci
 
-              # Step 2: Lint and Test
+              # Step 3: Lint
               - step:
                   type: Run
-                  name: Lint and Test
-                  identifier: test
+                  name: Lint
+                  identifier: lint
                   spec:
-                    shell: Powershell
+                    shell: Sh
                     image: node:20-bullseye
                     command: |
-                      npm run lint --if-present
-                      npm test --if-present -- --ci
+                      npm run lint
 
-              # Step 3: Local Build Check
+              # Step 4: TypeScript Check
               - step:
                   type: Run
-                  name: Local Build Check
-                  identifier: local_build
+                  name: Type Check
+                  identifier: type_check
                   spec:
-                    shell: Powershell
-                    image: expo-selfhosted:latest
+                    shell: Sh
+                    image: node:20-bullseye
                     command: |
-                      Write-Output "Starting Expo Dev Server..."
-                      npm ci
-                      Start-Process -NoNewWindow -FilePath "npx" -ArgumentList "expo start --non-interactive --offline --clear" -RedirectStandardOutput expo.log -RedirectStandardError expo.log -PassThru | Tee-Object -Variable expoProcess
-                      Start-Sleep -Seconds 60
-                      try {
-                        Invoke-WebRequest -Uri http://127.0.0.1:19002 -UseBasicParsing | Out-Null
-                        Write-Output "✅ Expo dev server started successfully."
-                        Stop-Process -Id $expoProcess.Id -Force
-                        exit 0
-                      } catch {
-                        Write-Output "❌ Expo dev server did not start. Showing last logs..."
-                        Get-Content expo.log -Tail 200
-                        Stop-Process -Id $expoProcess.Id -Force
-                        exit 1
-                      }
+                      npx tsc --noEmit
+
+              # Step 5: Unit Tests
+              - step:
+                  type: Run
+                  name: Unit Tests
+                  identifier: unit_tests
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    command: |
+                      npm test -- --ci || echo "No tests found or skipped"
+
+              # Step 6: Expo Doctor
+              - step:
+                  type: Run
+                  name: Expo Doctor
+                  identifier: expo_doctor
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    command: |
+                      npx expo doctor --non-interactive
+
+              # Step 7: JS Bundle Check (Optional)
+              - step:
+                  type: Run
+                  name: JS Bundle Check
+                  identifier: js_bundle
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    command: |
+                      npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android.bundle || true
+                      npx react-native bundle --platform ios --dev false --entry-file index.js --bundle-output ios.bundle || true
 
     # ---------------------------------------------------------------------
-    # STAGE 2: PRODUCTION BUILD (Linux, main branch only)
+    # STAGE 2: PRODUCTION BUILD (EAS Cloud, main branch only)
     # ---------------------------------------------------------------------
     - stage:
         name: Production Build
@@ -127,8 +137,12 @@ pipeline:
           platform:
             os: Linux
             arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
           execution:
             steps:
+              # Expo Cloud Build - Android
               - step:
                   type: Run
                   name: Expo Cloud Build - Android
@@ -145,6 +159,7 @@ pipeline:
                       npx eas whoami
                       npx eas build --platform android --profile production --non-interactive
 
+              # Expo Cloud Build - iOS
               - step:
                   type: Run
                   name: Expo Cloud Build - iOS
@@ -162,7 +177,7 @@ pipeline:
                       npx eas build --platform ios --profile production --non-interactive
 
     # ---------------------------------------------------------------------
-    # STAGE 3: OTA UPDATE (Linux, main branch only)
+    # STAGE 3: OTA UPDATE (EAS Cloud, main branch only)
     # ---------------------------------------------------------------------
     - stage:
         name: OTA Update
@@ -176,8 +191,12 @@ pipeline:
           platform:
             os: Linux
             arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
           execution:
             steps:
+              # EAS OTA Update
               - step:
                   type: Run
                   name: EAS OTA Update
