@@ -39,7 +39,8 @@ pipeline:
             arch: Amd64
           runtime:
             type: Docker
-            spec: {}
+            spec: 
+              network: harness_bridge
           delegateSelectors:
             - windows-amd64
           execution:
