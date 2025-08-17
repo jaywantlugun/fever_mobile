@@ -42,6 +42,20 @@ pipeline:
             spec: {}
           execution:
             steps:
+              # Step 0: Show working directory and list files
+              - step:
+                  type: Run
+                  name: Show Directory
+                  identifier: show_directory
+                  spec:
+                    shell: Sh
+                    image: node:20-bullseye
+                    command: |
+                      echo "Current directory:"
+                      pwd
+                      echo "Listing files:"
+                      ls -la
+
               # Step 1: Setup Node & Expo CLI
               - step:
                   type: Run
@@ -108,7 +122,8 @@ pipeline:
                     shell: Sh
                     image: node:20-bullseye
                     command: |
-                      npx expo-doctor /harness/fever_mobile --non-interactive
+                      echo "Running Expo Doctor in current directory..."
+                      npx expo-doctor --non-interactive
 
               # Step 7: JS Bundle Check (Optional)
               - step:
