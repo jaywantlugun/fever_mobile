@@ -26,7 +26,7 @@ pipeline:
 
   stages:
     # ---------------------------------------------------------------------
-    # STAGE 1: VALIDATION (Runs for all scenarios, on Windows Docker Runner)
+    # STAGE 1: VALIDATION (Windows Docker Runner)
     # ---------------------------------------------------------------------
     - stage:
         name: Validate
@@ -44,6 +44,26 @@ pipeline:
             - windows-amd64
           execution:
             steps:
+              # Step 0: Verify Docker Bridge Network
+              - step:
+                  type: Run
+                  name: Verify Docker Bridge Network
+                  identifier: verify_docker_bridge
+                  spec:
+                    shell: Powershell
+                    image: mcr.microsoft.com/powershell:latest
+                    command: |
+                      Write-Output "Checking Docker networks..."
+                      $networks = docker network ls --format '{{.Name}}'
+                      if ($networks -contains "bridge") {
+                        Write-Output "✅ Bridge network exists."
+                      } else {
+                        Write-Output "❌ Bridge network not found!"
+                        docker network create bridge
+                        Write-Output "Created bridge network."
+                      }
+
+              # Step 1: Install Dependencies
               - step:
                   type: Run
                   name: Install dependencies
@@ -55,6 +75,7 @@ pipeline:
                       corepack enable
                       npm ci
 
+              # Step 2: Lint and Test
               - step:
                   type: Run
                   name: Lint and Test
@@ -66,6 +87,7 @@ pipeline:
                       npm run lint --if-present
                       npm test --if-present -- --ci
 
+              # Step 3: Local Build Check
               - step:
                   type: Run
                   name: Local Build Check
@@ -91,7 +113,7 @@ pipeline:
                       }
 
     # ---------------------------------------------------------------------
-    # STAGE 2: PRODUCTION BUILD (Only for merges to main)
+    # STAGE 2: PRODUCTION BUILD (Linux, main branch only)
     # ---------------------------------------------------------------------
     - stage:
         name: Production Build
@@ -140,7 +162,7 @@ pipeline:
                       npx eas build --platform ios --profile production --non-interactive
 
     # ---------------------------------------------------------------------
-    # STAGE 3: OTA UPDATE (Only for merges to main)
+    # STAGE 3: OTA UPDATE (Linux, main branch only)
     # ---------------------------------------------------------------------
     - stage:
         name: OTA Update
