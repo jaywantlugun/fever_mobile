@@ -108,7 +108,7 @@ pipeline:
                     shell: Sh
                     image: node:20-bullseye
                     command: |
-                      npx expo-doctor --non-interactive
+                      npx expo-doctor /harness/fever_mobile --non-interactive
 
               # Step 7: JS Bundle Check (Optional)
               - step:
