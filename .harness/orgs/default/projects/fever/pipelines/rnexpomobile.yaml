@@ -26,7 +26,7 @@ pipeline:
 
   stages:
     # ---------------------------------------------------------------------
-    # STAGE 1: VALIDATION (Runs for all scenarios)
+    # STAGE 1: VALIDATION (Runs for all scenarios, on Windows Docker Runner)
     # ---------------------------------------------------------------------
     - stage:
         name: Validate
@@ -34,15 +34,14 @@ pipeline:
         type: CI
         spec:
           cloneCodebase: true
-          infrastructure:
-            type: KubernetesDirect # Specifies using a local runner
-            spec:
-              connectorRef: localdockerconnector
-              namespace: default
-              delegateSelectors: # Select the delegate with the specified tag
-                - docker-delegate
-              automountServiceAccountToken: true
-              nodeSelector: {}
+          platform:
+            os: Windows
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec: {}
+          delegateSelectors:
+            - windows-amd64
           execution:
             steps:
               - step:
@@ -50,11 +49,10 @@ pipeline:
                   name: Install dependencies
                   identifier: install
                   spec:
-                    connectorRef: localdockerconnector
-                    shell: Sh
+                    shell: Powershell
                     image: node:20-bullseye
                     command: |
-                      corepack enable || true
+                      corepack enable
                       npm ci
 
               - step:
@@ -62,8 +60,7 @@ pipeline:
                   name: Lint and Test
                   identifier: test
                   spec:
-                    connectorRef: localdockerconnector
-                    shell: Sh
+                    shell: Powershell
                     image: node:20-bullseye
                     command: |
                       npm run lint --if-present
@@ -74,26 +71,24 @@ pipeline:
                   name: Local Build Check
                   identifier: local_build
                   spec:
-                    connectorRef: localdockerconnector
-                    shell: Sh
+                    shell: Powershell
                     image: expo-selfhosted:latest
                     command: |
-                      set -e
+                      Write-Output "Starting Expo Dev Server..."
                       npm ci
-                      npx expo start --non-interactive --offline --clear > expo.log 2>&1 &
-                      EXPO_PID=$!
-                      sleep 60
-                      if curl -fsS http://127.0.0.1:19002 >/dev/null; then
-                        echo "✅ Expo dev server started successfully."
-                        kill $EXPO_PID
-                        wait $EXPO_PID || true
+                      Start-Process -NoNewWindow -FilePath "npx" -ArgumentList "expo start --non-interactive --offline --clear" -RedirectStandardOutput expo.log -RedirectStandardError expo.log -PassThru | Tee-Object -Variable expoProcess
+                      Start-Sleep -Seconds 60
+                      try {
+                        Invoke-WebRequest -Uri http://127.0.0.1:19002 -UseBasicParsing | Out-Null
+                        Write-Output "✅ Expo dev server started successfully."
+                        Stop-Process -Id $expoProcess.Id -Force
                         exit 0
-                      else
-                        echo "❌ Expo dev server did not start. Recent logs:"
-                        tail -n +200 expo.log || true
-                        kill $EXPO_PID || true
+                      } catch {
+                        Write-Output "❌ Expo dev server did not start. Showing last logs..."
+                        Get-Content expo.log -Tail 200
+                        Stop-Process -Id $expoProcess.Id -Force
                         exit 1
-                      fi
+                      }
 
     # ---------------------------------------------------------------------
     # STAGE 2: PRODUCTION BUILD (Only for merges to main)
