@@ -123,7 +123,7 @@ pipeline:
                     image: node:20-bullseye
                     command: |
                       echo "Running Expo Doctor in current directory..."
-                      npx expo-doctor --non-interactive
+                      npx expo-doctor . --non-interactive
 
               # Step 7: JS Bundle Check (Optional)
               - step:
