@@ -1,0 +1,54 @@
+import { StyleSheet } from "react-native";
+import { ButtonShape, ButtonSize } from "./Button.type";
+
+export const buttonStyles = StyleSheet.create({
+  base: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  fluid: {
+    width: "100%",
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  icon: {
+    marginHorizontal: 6,
+  },
+  text: {
+    fontWeight: "600",
+  },
+});
+
+// Dynamic styles for size and shape
+export const getSizeStyles = (size: ButtonSize) => {
+  switch (size) {
+    case "sm":
+      return { paddingVertical: 8, paddingHorizontal: 12, fontSize: 14 };
+    case "lg":
+      return { paddingVertical: 16, paddingHorizontal: 20, fontSize: 18 };
+    default:
+      return { paddingVertical: 12, paddingHorizontal: 16, fontSize: 16 };
+  }
+};
+
+export const getShapeStyles = (shape: ButtonShape) => {
+  switch (shape) {
+    case "pill":
+      return { borderRadius: 999 };
+    case "rounded":
+      return { borderRadius: 25 };
+    default:
+      return { borderRadius: 8 };
+  }
+};
