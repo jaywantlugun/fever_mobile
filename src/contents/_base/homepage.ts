@@ -1,4 +1,4 @@
-import { Content } from "@/types/Content";
+import { Content } from "@/src/types/Content";
 
 export interface HomepageContent extends Content {
   title: string;

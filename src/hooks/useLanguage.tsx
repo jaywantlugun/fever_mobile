@@ -1,4 +1,4 @@
-import { Language } from "@/types/Language";
+import { Language } from "@/src/types/Language";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useEffect } from "react";
 

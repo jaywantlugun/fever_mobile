@@ -1,4 +1,4 @@
-import { Content } from "@/types/Content";
+import { Content } from "@/src/types/Content";
 import { createContext, ReactNode, useContext } from "react";
 
 const ContentContext = createContext<Content | null>(null);

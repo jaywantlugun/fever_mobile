@@ -1,4 +1,4 @@
-import { Language } from "@/types/Language";
+import { Language } from "@/src/types/Language";
 import baseContent from "./_base";
 import { AppContent } from "./AppContent";
 import englishContent from "./english";
