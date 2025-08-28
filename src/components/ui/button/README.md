@@ -6,6 +6,7 @@ A production-ready, theme-aware button for **React Native (Expo)** with:
 - **Gradient support**
 - **Loading state**
 - **Dynamic sizes & shapes**
+- **Press feedback (opacity & scale)**
 - **`expo-router` navigation support**
 - **TypeScript typing**
 - **ThemeProvider integration**
@@ -64,11 +65,11 @@ import CustomButton from "./components/Button/Button";
 | `href`              | `string`                                                 | `undefined` | Route path for `expo-router` |
 | `iconPosition`      | `"left"` \| `"right"`                                   | `"left"`    | Icon placement |
 | `icon`              | `React.ReactNode`                                        | `undefined` | Icon element |
-| `type`              | `"button"` \| `"reset"` \| `"submit"`                    | `"button"`  | Button type |
-| `variation`         | `"primary"` \| `"secondary"`                             | `"primary"` | Color style |
-| `width`             | `"content"` \| `"fluid"`                                 | `"content"` | Width style |
-| `size`              | `"sm"` \| `"md"` \| `"lg"`                               | `"md"`      | Button size |
-| `shape`             | `"rounded"` \| `"pill"` \| `"square"`                    | `"rounded"` | Border style |
+| `type`              | `"button"` \| `"reset"` \| `"submit"`                  | `"button"`  | Button type |
+| `variation`         | `"primary"` \| `"secondary"`                            | `"primary"` | Color style |
+| `width`             | `"content"` \| `"fluid"`                                | `"content"` | Width style |
+| `size`              | `"sm"` \| `"md"` \| `"lg"`                             | `"md"`      | Button size |
+| `shape`             | `"rounded"` \| `"pill"` \| `"square"`                  | `"rounded"` | Border style |
 | `loading`           | `boolean`                                                | `false`     | Show loading spinner |
 | `onPress`           | `(event: GestureResponderEvent) => void`                 | `undefined` | Press handler |
 | `style`             | `ViewStyle`                                              | `undefined` | Custom container styles |
@@ -100,4 +101,3 @@ Ensure your app is wrapped in `ThemeProvider` with `lightColors` and `darkColors
 
 ### Next Improvements
 - Add **color variations** (`success`, `warning`, `danger`) from theme
-- Add **shadow/elevation** for depth

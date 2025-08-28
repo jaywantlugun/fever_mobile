@@ -10,8 +10,8 @@ import {
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { useTheme } from "@/src/hooks/useTheme";
-import { buttonStyles, getShapeStyles, getSizeStyles } from "./Button.styled";
-import { ButtonProps } from "./Button.type";
+import { buttonStyles, getShapeStyles, getSizeStyles } from "./Button.styles";
+import { ButtonProps } from "./Button.types";
 
 const Button: React.FC<ButtonProps> = ({
   children,
@@ -22,6 +22,7 @@ const Button: React.FC<ButtonProps> = ({
   type = "button",
   variation = "primary",
   width = "content",
+  fixedWidth = 200,
   size = "md",
   shape = "rounded",
   accessibilityLabel,
@@ -37,7 +38,7 @@ const Button: React.FC<ButtonProps> = ({
   const handlePress = (event: any) => {
     if (disabled || loading) return;
     if (href) {
-      router.push(href as never); // Type casting for dynamic routes
+      router.push(href as never);
       return;
     }
     onPress?.(event);
@@ -52,6 +53,13 @@ const Button: React.FC<ButtonProps> = ({
   const sizeStyles = getSizeStyles(size);
   const shapeStyles = getShapeStyles(shape);
 
+  const widthStyle =
+    width === "fluid"
+      ? buttonStyles.fluid
+      : width === "fixed"
+      ? { width: fixedWidth }
+      : {};
+
   return (
     <Pressable
       onPress={handlePress}
@@ -63,9 +71,9 @@ const Button: React.FC<ButtonProps> = ({
         buttonStyles.base,
         sizeStyles,
         shapeStyles,
-        width === "fluid" && buttonStyles.fluid,
+        widthStyle,
         disabled && buttonStyles.disabled,
-        pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }, // Simple press effect
+        pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
         style,
       ]}
     >
@@ -77,7 +85,7 @@ const Button: React.FC<ButtonProps> = ({
           buttonStyles.base,
           sizeStyles,
           shapeStyles,
-          width === "fluid" && buttonStyles.fluid,
+          widthStyle,
         ]}
       >
         {loading ? (
@@ -89,7 +97,7 @@ const Button: React.FC<ButtonProps> = ({
           </Animated.View>
         ) : (
           <Animated.View
-            style={buttonStyles.content}
+            style={{ flexDirection: "row", alignItems: "center" }}
             entering={FadeIn.duration(200)}
             exiting={FadeOut.duration(200)}
           >

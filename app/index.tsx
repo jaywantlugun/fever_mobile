@@ -1,4 +1,5 @@
 import { Button } from "@/src/components/ui/button";
+import { InputField } from "@/src/components/ui/inputField";
 import { Text, View } from "react-native";
 
 export default function Index() {
@@ -11,7 +12,8 @@ export default function Index() {
       }}
     >
       <Text>Edit app/index.tsx to edit.</Text>
-      <Button shape="square" width="fluid" loading>Press me please</Button>
+      <Button width="fluid">Press me please</Button>
+      <InputField label="Password" placeholder="Enter your password"/>
     </View> 
   );
 }

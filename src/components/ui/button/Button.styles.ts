@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { ButtonShape, ButtonSize } from "./Button.type";
+import { ButtonShape, ButtonSize } from "./Button.types";
 
 export const buttonStyles = StyleSheet.create({
   base: {
@@ -7,7 +7,7 @@ export const buttonStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     borderRadius: 8,
     overflow: "hidden",
   },
@@ -17,11 +17,6 @@ export const buttonStyles = StyleSheet.create({
   fluid: {
     width: "100%",
   },
-  content: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   icon: {
     marginHorizontal: 6,
   },
@@ -30,15 +25,14 @@ export const buttonStyles = StyleSheet.create({
   },
 });
 
-// Dynamic styles for size and shape
 export const getSizeStyles = (size: ButtonSize) => {
   switch (size) {
     case "sm":
-      return { paddingVertical: 8, paddingHorizontal: 12, fontSize: 14 };
+      return { paddingVertical: 8, paddingHorizontal: 0, fontSize: 14 };
     case "lg":
-      return { paddingVertical: 16, paddingHorizontal: 20, fontSize: 18 };
+      return { paddingVertical: 16, paddingHorizontal: 0, fontSize: 18 };
     default:
-      return { paddingVertical: 12, paddingHorizontal: 16, fontSize: 16 };
+      return { paddingVertical: 12, paddingHorizontal: 0, fontSize: 16 };
   }
 };
 
